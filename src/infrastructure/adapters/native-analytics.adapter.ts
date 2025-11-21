@@ -17,8 +17,13 @@ try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@react-native-firebase/app');
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const analytics = require('@react-native-firebase/analytics');
-  nativeAnalyticsModule = analytics;
+  const analyticsModule = require('@react-native-firebase/analytics');
+  // @react-native-firebase/analytics returns a default export function
+  // Handle both direct function and module with default export
+  nativeAnalyticsModule =
+    typeof analyticsModule === 'function'
+      ? analyticsModule
+      : analyticsModule?.default || analyticsModule;
 } catch (error) {
   /* eslint-disable-next-line no-console */
   if (__DEV__) {
@@ -26,11 +31,12 @@ try {
   }
 }
 
-export const nativeAnalyticsAdapter: NativeAnalyticsAdapter | null = nativeAnalyticsModule
-  ? {
-      getAnalytics(): any {
-        return nativeAnalyticsModule();
-      },
+export const nativeAnalyticsAdapter: NativeAnalyticsAdapter | null =
+  nativeAnalyticsModule && typeof nativeAnalyticsModule === 'function'
+    ? {
+        getAnalytics(): any {
+          return nativeAnalyticsModule();
+        },
       async logEvent(
         analytics: any,
         eventName: string,

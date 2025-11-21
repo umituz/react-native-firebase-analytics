@@ -50,7 +50,25 @@ export class AnalyticsInitializerService {
 
   private async initializeNative(): Promise<AnalyticsInstance | null> {
     try {
-      const instance = nativeAnalyticsAdapter!.getAnalytics();
+      if (!nativeAnalyticsAdapter) {
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          console.warn(
+            '⚠️ Firebase Analytics: Native adapter not available - ensure @react-native-firebase/app and @react-native-firebase/analytics are installed',
+          );
+        }
+        return null;
+      }
+
+      const instance = nativeAnalyticsAdapter.getAnalytics();
+      if (!instance) {
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          console.warn('⚠️ Firebase Analytics: getAnalytics() returned null');
+        }
+        return null;
+      }
+
       /* eslint-disable-next-line no-console */
       if (__DEV__) {
         console.log('✅ Firebase Analytics initialized (native)');
