@@ -60,6 +60,27 @@ export class AnalyticsInitializerService {
         return null;
       }
 
+      // Try to get Firebase App instance to check if it's initialized
+      let firebaseApp: any = null;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const firebaseAppModule = require('@react-native-firebase/app');
+        firebaseApp = firebaseAppModule.app();
+      } catch (appError: any) {
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          const errorMessage = appError?.message || String(appError);
+          if (errorMessage.includes('No Firebase App') || errorMessage.includes('has been created')) {
+            console.warn(
+              '⚠️ Firebase Analytics: Firebase App not initialized. Please add GoogleService-Info.plist to ios/ directory and rebuild the app.',
+            );
+          } else {
+            console.warn('⚠️ Firebase Analytics: Firebase App check failed', appError);
+          }
+        }
+        return null;
+      }
+
       const instance = nativeAnalyticsAdapter.getAnalytics();
       if (!instance) {
         /* eslint-disable-next-line no-console */
@@ -74,10 +95,17 @@ export class AnalyticsInitializerService {
         console.log('✅ Firebase Analytics initialized (native)');
       }
       return { instance, platform: 'native' };
-    } catch (error) {
+    } catch (error: any) {
       /* eslint-disable-next-line no-console */
       if (__DEV__) {
-        console.warn('⚠️ Firebase Analytics: Native initialization failed', error);
+        const errorMessage = error?.message || String(error);
+        if (errorMessage.includes('No Firebase App') || errorMessage.includes('has been created')) {
+          console.warn(
+            '⚠️ Firebase Analytics: Firebase App not initialized. Please add GoogleService-Info.plist to ios/ directory and rebuild the app.',
+          );
+        } else {
+          console.warn('⚠️ Firebase Analytics: Native initialization failed', error);
+        }
       }
       return null;
     }
