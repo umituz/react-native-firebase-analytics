@@ -18,12 +18,25 @@ try {
   require('@react-native-firebase/app');
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const analyticsModule = require('@react-native-firebase/analytics');
-  // @react-native-firebase/analytics returns a default export function
-  // Handle both direct function and module with default export
-  nativeAnalyticsModule =
-    typeof analyticsModule === 'function'
-      ? analyticsModule
-      : analyticsModule?.default || analyticsModule;
+  
+  // @react-native-firebase/analytics returns a factory function via createModuleNamespace
+  // Handle CommonJS (require) and ES6 (import) module formats
+  // The module can be:
+  // 1. Direct function: analyticsModule()
+  // 2. Object with default: analyticsModule.default()
+  // 3. Object with __esModule: analyticsModule.default() or analyticsModule()
+  
+  if (typeof analyticsModule === 'function') {
+    // Direct function export
+    nativeAnalyticsModule = analyticsModule;
+  } else if (analyticsModule && typeof analyticsModule.default === 'function') {
+    // ES6 default export in CommonJS format
+    nativeAnalyticsModule = analyticsModule.default;
+  } else if (analyticsModule && typeof analyticsModule === 'object') {
+    // Try to use the module itself if it's callable
+    // Some bundlers wrap the function in an object
+    nativeAnalyticsModule = analyticsModule;
+  }
 } catch (error) {
   /* eslint-disable-next-line no-console */
   if (__DEV__) {
@@ -32,10 +45,20 @@ try {
 }
 
 export const nativeAnalyticsAdapter: NativeAnalyticsAdapter | null =
-  nativeAnalyticsModule && typeof nativeAnalyticsModule === 'function'
+  nativeAnalyticsModule && (typeof nativeAnalyticsModule === 'function' || typeof nativeAnalyticsModule === 'object')
     ? {
         getAnalytics(): any {
-          return nativeAnalyticsModule();
+          // Try calling as function first, then as object method
+          if (typeof nativeAnalyticsModule === 'function') {
+            return nativeAnalyticsModule();
+          }
+          // If it's an object, try calling it directly (some modules are callable objects)
+          if (typeof nativeAnalyticsModule === 'object' && nativeAnalyticsModule.default) {
+            return typeof nativeAnalyticsModule.default === 'function'
+              ? nativeAnalyticsModule.default()
+              : nativeAnalyticsModule.default;
+          }
+          return nativeAnalyticsModule;
         },
       async logEvent(
         analytics: any,
