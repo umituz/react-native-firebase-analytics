@@ -24,14 +24,26 @@ export function trackButtonClick(
   const { buttonName, screenName, screenClass, ...additionalParams } =
     options || {};
 
-  firebaseAnalyticsService
-    .logButtonClick({
-      button_id: buttonId,
-      button_name: buttonName || buttonId,
-      screen_name: screenName || "unknown",
-      screen_class: screenClass || screenName || "unknown",
+  const params = {
+    button_id: buttonId,
+    button_name: buttonName || buttonId,
+    screen_name: screenName || "unknown",
+    screen_class: screenClass || screenName || "unknown",
+    ...additionalParams,
+  };
+
+  /* eslint-disable-next-line no-console */
+  if (__DEV__) {
+    console.log("📊 Button click tracked:", {
+      buttonId,
+      buttonName: buttonName || buttonId,
+      screenName: screenName || "unknown",
       ...additionalParams,
-    })
+    });
+  }
+
+  firebaseAnalyticsService
+    .logButtonClick(params)
     .catch(() => {
       // Silent fail - analytics is non-critical
     });
