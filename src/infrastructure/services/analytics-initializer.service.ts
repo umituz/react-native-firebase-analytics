@@ -35,10 +35,12 @@ export class AnalyticsInitializerService {
     }
 
     // Native not available on iOS/Android - return null
-    /* eslint-disable-next-line no-console */
-    if (__DEV__) {
+    // Only log warning once (check if already logged)
+    if (__DEV__ && !(global as any).__FIREBASE_ANALYTICS_NATIVE_WARNING_LOGGED) {
+      (global as any).__FIREBASE_ANALYTICS_NATIVE_WARNING_LOGGED = true;
+      /* eslint-disable-next-line no-console */
       console.warn(
-        '⚠️ Firebase Analytics: Native module not available on iOS/Android',
+        '⚠️ Firebase Analytics: Native module not available on iOS/Android (Expo Go limitation)',
       );
     }
     return null;

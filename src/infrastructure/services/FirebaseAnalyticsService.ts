@@ -11,6 +11,7 @@ import type { AnalyticsInstance } from './analytics-initializer.service';
 
 export interface IAnalyticsService {
   init(userId?: string): Promise<void>;
+  setUserId(userId: string): Promise<void>;
   logEvent(
     eventName: string,
     params?: Record<string, string | number | boolean | null>,
@@ -45,6 +46,14 @@ class FirebaseAnalyticsService implements IAnalyticsService {
   private analyticsInstance: AnalyticsInstance | null = null;
 
   async init(userId?: string): Promise<void> {
+    if (this.isInitialized) {
+      // Already initialized, just update user ID if provided
+      if (userId && userId !== this.userId) {
+        await this.setUserId(userId);
+      }
+      return;
+    }
+
     try {
       this.analyticsInstance = await analyticsInitializerService.initialize();
 
@@ -61,6 +70,26 @@ class FirebaseAnalyticsService implements IAnalyticsService {
       // Analytics is non-critical, fail silently
     } finally {
       this.isInitialized = true;
+    }
+  }
+
+  async setUserId(userId: string): Promise<void> {
+    if (!this.isInitialized || !this.analyticsInstance) {
+      // Not initialized yet, will be set during init
+      return;
+    }
+
+    if (this.userId === userId) {
+      // Already set to this user ID
+      return;
+    }
+
+    try {
+      this.userId = userId;
+      await analyticsUserService.setUserId(this.analyticsInstance, userId);
+      await this.setUserProperty('user_type', 'authenticated');
+    } catch (_error) {
+      // Analytics is non-critical, fail silently
     }
   }
 
