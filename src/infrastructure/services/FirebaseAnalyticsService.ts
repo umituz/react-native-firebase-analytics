@@ -11,8 +11,8 @@ import { getFirebaseApp } from '@umituz/react-native-firebase';
 let webAnalytics: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getAnalytics, logEvent, setUserId, setUserProperties, Analytics } = require('firebase/analytics');
-  webAnalytics = { getAnalytics, logEvent, setUserId, setUserProperties, Analytics };
+  const { getAnalytics, logEvent, setUserId, setUserProperties, Analytics, isSupported } = require('firebase/analytics');
+  webAnalytics = { getAnalytics, logEvent, setUserId, setUserProperties, Analytics, isSupported };
 } catch {
   // firebase/analytics not available (e.g., on native platforms)
 }
@@ -87,15 +87,47 @@ class FirebaseAnalyticsService implements IAnalyticsService {
     }
 
     try {
+      // Check if Analytics is supported in this environment
+      if (webAnalytics.isSupported) {
+        const isSupported = await webAnalytics.isSupported();
+        if (!isSupported) {
+          /* eslint-disable-next-line no-console */
+          if (__DEV__) {
+            console.warn("⚠️ Firebase Analytics: Not supported in this environment (web)");
+          }
+          this.isInitialized = true;
+          return;
+        }
+      }
+
       const app = getFirebaseApp();
-      if (!this.analytics) {
-        this.analytics = webAnalytics.getAnalytics(app);
+      if (!app) {
         /* eslint-disable-next-line no-console */
         if (__DEV__) {
-          console.log("✅ Firebase Analytics initialized (web)", {
-            hasAnalytics: !!this.analytics,
-            userId: userId || "guest",
-          });
+          console.warn("⚠️ Firebase Analytics: Firebase app not available");
+        }
+        this.isInitialized = true;
+        return;
+      }
+
+      if (!this.analytics) {
+        // Wrap getAnalytics in try-catch to handle document/DOM errors
+        try {
+          this.analytics = webAnalytics.getAnalytics(app);
+          /* eslint-disable-next-line no-console */
+          if (__DEV__) {
+            console.log("✅ Firebase Analytics initialized (web)", {
+              hasAnalytics: !!this.analytics,
+              userId: userId || "guest",
+            });
+          }
+        } catch (analyticsError) {
+          /* eslint-disable-next-line no-console */
+          if (__DEV__) {
+            console.warn("⚠️ Firebase Analytics: getAnalytics failed", analyticsError);
+          }
+          this.isInitialized = true;
+          return;
         }
       }
     } catch (error) {
@@ -107,12 +139,22 @@ class FirebaseAnalyticsService implements IAnalyticsService {
       return;
     }
 
-    if (userId) {
-      this.userId = userId;
-      await webAnalytics.setUserId(this.analytics, userId);
-      await this.setUserProperty('user_type', 'authenticated');
-    } else {
-      await this.setUserProperty('user_type', 'guest');
+    // Only set user properties if analytics is initialized
+    if (this.analytics) {
+      try {
+        if (userId) {
+          this.userId = userId;
+          await webAnalytics.setUserId(this.analytics, userId);
+          await this.setUserProperty('user_type', 'authenticated');
+        } else {
+          await this.setUserProperty('user_type', 'guest');
+        }
+      } catch (error) {
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          console.warn("⚠️ Firebase Analytics: Failed to set user properties", error);
+        }
+      }
     }
 
     this.isInitialized = true;
@@ -163,44 +205,61 @@ class FirebaseAnalyticsService implements IAnalyticsService {
   ): Promise<void> {
     try {
       if (!this.analytics) {
-        /* eslint-disable-next-line no-console */
-        if (__DEV__) {
-          console.warn("⚠️ Firebase Analytics: Cannot log event - analytics not initialized", {
-            eventName,
-          });
-        }
+        // Silent fail - analytics not available
         return;
       }
 
       // Use whichever implementation initialized analytics
       if (nativeAnalytics && this.analytics) {
-        await nativeAnalytics.logEvent(this.analytics, eventName, params);
-        /* eslint-disable-next-line no-console */
-        if (__DEV__) {
-          console.log("📊 Firebase Analytics Event (native):", {
-            eventName,
-            params,
-            userId: this.userId || "guest",
-            platform: "iOS/Android",
-          });
+        try {
+          await nativeAnalytics.logEvent(this.analytics, eventName, params);
+          /* eslint-disable-next-line no-console */
+          if (__DEV__) {
+            console.log("📊 Firebase Analytics Event (native):", {
+              eventName,
+              params,
+              userId: this.userId || "guest",
+              platform: "iOS/Android",
+            });
+          }
+        } catch (error) {
+          /* eslint-disable-next-line no-console */
+          if (__DEV__) {
+            console.warn("⚠️ Firebase Analytics: Failed to log event (native)", {
+              eventName,
+              error,
+            });
+          }
         }
       } else if (webAnalytics && this.analytics) {
-        await webAnalytics.logEvent(this.analytics, eventName, params);
-        /* eslint-disable-next-line no-console */
-        if (__DEV__) {
-          console.log("📊 Firebase Analytics Event:", {
-            eventName,
-            params,
-            userId: this.userId || "guest",
-          });
+        try {
+          await webAnalytics.logEvent(this.analytics, eventName, params);
+          /* eslint-disable-next-line no-console */
+          if (__DEV__) {
+            console.log("📊 Firebase Analytics Event:", {
+              eventName,
+              params,
+              userId: this.userId || "guest",
+            });
+          }
+        } catch (error) {
+          /* eslint-disable-next-line no-console */
+          if (__DEV__) {
+            // Only log in dev mode, don't show errors to users
+            console.warn("⚠️ Firebase Analytics: Failed to log event (web)", {
+              eventName,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
         }
       }
     } catch (error) {
+      // Silent fail - analytics is non-critical
       /* eslint-disable-next-line no-console */
       if (__DEV__) {
         console.warn("⚠️ Firebase Analytics: Failed to log event", {
           eventName,
-          error,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
