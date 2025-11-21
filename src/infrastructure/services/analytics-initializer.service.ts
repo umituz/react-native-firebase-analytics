@@ -36,12 +36,15 @@ export class AnalyticsInitializerService {
 
     // Native not available on iOS/Android - return null
     // Only log warning once (check if already logged)
-    if (__DEV__ && !(global as any).__FIREBASE_ANALYTICS_NATIVE_WARNING_LOGGED) {
-      (global as any).__FIREBASE_ANALYTICS_NATIVE_WARNING_LOGGED = true;
-      /* eslint-disable-next-line no-console */
-      console.warn(
-        '⚠️ Firebase Analytics: Native module not available on iOS/Android (Expo Go limitation)',
-      );
+    if (__DEV__) {
+      const globalObj = typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : {};
+      if (!(globalObj as any).__FIREBASE_ANALYTICS_NATIVE_WARNING_LOGGED) {
+        (globalObj as any).__FIREBASE_ANALYTICS_NATIVE_WARNING_LOGGED = true;
+        /* eslint-disable-next-line no-console */
+        console.warn(
+          '⚠️ Firebase Analytics: Native module not available on iOS/Android (Expo Go limitation)',
+        );
+      }
     }
     return null;
   }
