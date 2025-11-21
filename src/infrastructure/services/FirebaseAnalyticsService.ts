@@ -65,6 +65,21 @@ class FirebaseAnalyticsService implements IAnalyticsService {
         } else {
           await this.setUserProperty('user_type', 'guest');
         }
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          console.log('✅ Firebase Analytics initialized successfully', {
+            platform: this.analyticsInstance.platform,
+            userId: userId || 'guest',
+          });
+        }
+      } else {
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          console.warn('⚠️ Firebase Analytics: Initialization returned null instance', {
+            reason: 'Native module not available (Expo Go limitation) or web analytics not supported',
+            note: 'Events will be logged to console but not sent to Firebase',
+          });
+        }
       }
     } catch (_error) {
       // Analytics is non-critical, fail silently
@@ -97,6 +112,15 @@ class FirebaseAnalyticsService implements IAnalyticsService {
     eventName: string,
     params?: Record<string, string | number | boolean | null>,
   ): Promise<void> {
+    if (!this.isInitialized) {
+      /* eslint-disable-next-line no-console */
+      if (__DEV__) {
+        console.warn('⚠️ Firebase Analytics: Cannot log event - Service not initialized', {
+          eventName,
+        });
+      }
+      return;
+    }
     await analyticsEventService.logEvent(this.analyticsInstance, eventName, params);
   }
 

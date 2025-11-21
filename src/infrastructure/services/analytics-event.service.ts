@@ -17,6 +17,13 @@ export class AnalyticsEventService {
     params?: Record<string, string | number | boolean | null>,
   ): Promise<void> {
     if (!analyticsInstance) {
+      /* eslint-disable-next-line no-console */
+      if (__DEV__) {
+        console.warn('⚠️ Firebase Analytics: Cannot log event - Analytics not initialized', {
+          eventName,
+          reason: 'Analytics instance is null (native module not available in Expo Go)',
+        });
+      }
       return;
     }
 
