@@ -3,6 +3,7 @@
  * Single Responsibility: Handle analytics initialization logic
  */
 
+import { Platform } from 'react-native';
 import { getFirebaseApp } from '@umituz/react-native-firebase';
 import { webAnalyticsAdapter } from '../adapters/web-analytics.adapter';
 import { nativeAnalyticsAdapter } from '../adapters/native-analytics.adapter';
@@ -18,15 +19,28 @@ export class AnalyticsInitializerService {
    * Returns null if initialization fails
    */
   async initialize(): Promise<AnalyticsInstance | null> {
-    // Try native first, then web
+    // Platform-specific initialization
+    // iOS/Android: Only use native
+    // Web: Only use web
+    if (Platform.OS === 'web') {
+      if (webAnalyticsAdapter) {
+        return this.initializeWeb();
+      }
+      return null;
+    }
+
+    // iOS/Android: Try native only
     if (nativeAnalyticsAdapter) {
       return this.initializeNative();
     }
 
-    if (webAnalyticsAdapter) {
-      return this.initializeWeb();
+    // Native not available on iOS/Android - return null
+    /* eslint-disable-next-line no-console */
+    if (__DEV__) {
+      console.warn(
+        '⚠️ Firebase Analytics: Native module not available on iOS/Android',
+      );
     }
-
     return null;
   }
 
