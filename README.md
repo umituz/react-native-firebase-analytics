@@ -23,6 +23,10 @@ npm install @umituz/react-native-firebase-analytics
 - ✅ Automatic event tracking with decorators
 - ✅ Performance tracking
 - ✅ Screen view tracking
+- ✅ Screen time tracking (how long users stay on screens)
+- ✅ Navigation tracking (user journey analysis)
+- ✅ Button click tracking
+- ✅ CRUD operation tracking
 - ✅ User property management
 - ✅ Domain-Driven Design architecture
 
@@ -62,6 +66,28 @@ await firebaseAnalyticsService.logScreenView({
   screen_name: 'HomeScreen',
   screen_class: 'HomeScreen',
 });
+
+// Log screen time
+await firebaseAnalyticsService.logScreenTime({
+  screen_name: 'HomeScreen',
+  screen_class: 'HomeScreen',
+  time_spent_seconds: 45,
+});
+
+// Log navigation
+await firebaseAnalyticsService.logNavigation({
+  from_screen: 'HomeScreen',
+  to_screen: 'SettingsScreen',
+  screen_class: 'SettingsScreen',
+});
+
+// Log button click
+await firebaseAnalyticsService.logButtonClick({
+  button_id: 'create_deck',
+  button_name: 'Create Deck',
+  screen_name: 'HomeScreen',
+  screen_class: 'HomeScreen',
+});
 ```
 
 ### 3. Use Decorators
@@ -78,7 +104,43 @@ class UserService {
 }
 ```
 
-### 4. Performance Tracking
+### 4. Screen Tracking Hooks
+
+```typescript
+import { useScreenView, useScreenTime, useNavigationTracking } from '@umituz/react-native-firebase-analytics';
+
+function HomeScreen() {
+  // Comprehensive tracking (screen view + time + navigation)
+  useScreenView('home', 'HomeScreen');
+  
+  // OR use individual hooks
+  useScreenTime('home', 'HomeScreen'); // Track time spent
+  useNavigationTracking('home', 'HomeScreen'); // Track navigation
+  
+  return <View>...</View>;
+}
+```
+
+### 5. Utility Functions
+
+```typescript
+import { trackButtonClick, trackCRUDOperation } from '@umituz/react-native-firebase-analytics';
+
+// Track button clicks
+trackButtonClick('create_deck', {
+  buttonName: 'Create Deck',
+  screenName: 'HomeScreen',
+  screenClass: 'HomeScreen',
+});
+
+// Track CRUD operations
+trackCRUDOperation('create', 'deck', 'deck_123', {
+  deck_title: 'Spanish Vocabulary',
+  card_count: 10,
+});
+```
+
+### 6. Performance Tracking
 
 ```typescript
 import { TrackPerformance, TrackOperation } from '@umituz/react-native-firebase-analytics';
@@ -105,10 +167,24 @@ class DataService {
 - `firebaseAnalyticsService.init(userId?)` - Initialize analytics
 - `firebaseAnalyticsService.logEvent(eventName, params?)` - Log custom event
 - `firebaseAnalyticsService.logScreenView(params)` - Log screen view
+- `firebaseAnalyticsService.logScreenTime(params)` - Log screen time (seconds)
+- `firebaseAnalyticsService.logNavigation(params)` - Log navigation between screens
+- `firebaseAnalyticsService.logButtonClick(params)` - Log button click
 - `firebaseAnalyticsService.setUserProperty(key, value)` - Set user property
 - `firebaseAnalyticsService.setUserProperties(properties)` - Set multiple user properties
 - `firebaseAnalyticsService.clearUserData()` - Clear user data
 - `firebaseAnalyticsService.getCurrentUserId()` - Get current user ID
+
+### Hooks
+
+- `useScreenView(screenName, screenClass?)` - Comprehensive screen tracking (view + time + navigation)
+- `useScreenTime(screenName, screenClass?)` - Track time spent on screen
+- `useNavigationTracking(screenName, screenClass?)` - Track navigation between screens
+
+### Utilities
+
+- `trackButtonClick(buttonId, options?)` - Track button clicks
+- `trackCRUDOperation(operation, entityType, entityId, params?)` - Track CRUD operations
 
 ### Decorators
 

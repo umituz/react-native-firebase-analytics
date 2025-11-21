@@ -1,6 +1,6 @@
 {
   "name": "@umituz/react-native-firebase-analytics",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Firebase Analytics service for React Native apps - Platform-agnostic analytics tracking with decorators",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -28,11 +28,13 @@
   },
   "peerDependencies": {
     "@umituz/react-native-firebase": ">=1.0.0",
+    "@react-navigation/native": ">=6.0.0",
     "firebase": ">=11.0.0",
     "react": ">=18.2.0",
     "react-native": ">=0.74.0"
   },
   "devDependencies": {
+    "@react-navigation/native": "^6.0.0",
     "@types/react": "^18.2.45",
     "@types/react-native": "^0.73.0",
     "firebase": "^11.0.0",

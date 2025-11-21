@@ -23,15 +23,21 @@ try {
   require('@react-native-firebase/app');
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const analytics = require('@react-native-firebase/analytics');
+  // React Native Firebase Analytics API
+  // analytics() returns the default instance, no need for getAnalytics()
   nativeAnalytics = {
-    getAnalytics: analytics.getAnalytics,
-    setUserId: analytics.setUserId,
-    setUserProperties: analytics.setUserProperties,
-    logEvent: analytics.logEvent,
-    resetAnalyticsData: analytics.resetAnalyticsData,
+    getAnalytics: () => analytics(), // analytics() returns default instance
+    setUserId: (instance: any, userId: string) => instance.setUserId(userId),
+    setUserProperties: (instance: any, properties: Record<string, string>) => instance.setUserProperties(properties),
+    logEvent: (instance: any, eventName: string, params?: Record<string, any>) => instance.logEvent(eventName, params),
+    resetAnalyticsData: (instance: any) => instance.resetAnalyticsData(),
   };
-} catch {
+} catch (error) {
   // @react-native-firebase/analytics not available (e.g., on web)
+  /* eslint-disable-next-line no-console */
+  if (__DEV__) {
+    console.warn("⚠️ Firebase Analytics: Native module not available", error);
+  }
 }
 
 export interface IAnalyticsService {
@@ -41,6 +47,10 @@ export interface IAnalyticsService {
   setUserProperties(properties: Record<string, string>): Promise<void>;
   clearUserData(): Promise<void>;
   getCurrentUserId(): string | null;
+  logScreenView(params: { screen_name: string; screen_class?: string }): Promise<void>;
+  logScreenTime(params: { screen_name: string; screen_class?: string; time_spent_seconds: number }): Promise<void>;
+  logNavigation(params: { from_screen: string; to_screen: string; screen_class?: string }): Promise<void>;
+  logButtonClick(params: { button_id: string; button_name?: string; screen_name: string; screen_class?: string }): Promise<void>;
 }
 
 class FirebaseAnalyticsService implements IAnalyticsService {
@@ -68,6 +78,10 @@ class FirebaseAnalyticsService implements IAnalyticsService {
 
   private async initWeb(userId?: string): Promise<void> {
     if (!webAnalytics) {
+      /* eslint-disable-next-line no-console */
+      if (__DEV__) {
+        console.warn("⚠️ Firebase Analytics: webAnalytics not available");
+      }
       this.isInitialized = true;
       return;
     }
@@ -76,8 +90,19 @@ class FirebaseAnalyticsService implements IAnalyticsService {
       const app = getFirebaseApp();
       if (!this.analytics) {
         this.analytics = webAnalytics.getAnalytics(app);
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          console.log("✅ Firebase Analytics initialized (web)", {
+            hasAnalytics: !!this.analytics,
+            userId: userId || "guest",
+          });
+        }
       }
-    } catch {
+    } catch (error) {
+      /* eslint-disable-next-line no-console */
+      if (__DEV__) {
+        console.warn("⚠️ Firebase Analytics initialization failed:", error);
+      }
       this.isInitialized = true;
       return;
     }
@@ -95,12 +120,25 @@ class FirebaseAnalyticsService implements IAnalyticsService {
 
   private async initNative(userId?: string): Promise<void> {
     if (!nativeAnalytics) {
+      /* eslint-disable-next-line no-console */
+      if (__DEV__) {
+        console.warn("⚠️ Firebase Analytics: nativeAnalytics not available (iOS/Android)");
+      }
       this.isInitialized = true;
       return;
     }
 
     try {
       this.analytics = nativeAnalytics.getAnalytics();
+      
+      /* eslint-disable-next-line no-console */
+      if (__DEV__) {
+        console.log("✅ Firebase Analytics initialized (native)", {
+          hasAnalytics: !!this.analytics,
+          userId: userId || "guest",
+          platform: "iOS/Android",
+        });
+      }
       
       if (userId) {
         this.userId = userId;
@@ -109,8 +147,11 @@ class FirebaseAnalyticsService implements IAnalyticsService {
       } else {
         await this.setUserProperty('user_type', 'guest');
       }
-    } catch {
-      // Silent fail
+    } catch (error) {
+      /* eslint-disable-next-line no-console */
+      if (__DEV__) {
+        console.warn("⚠️ Firebase Analytics: Native initialization failed:", error);
+      }
     }
 
     this.isInitialized = true;
@@ -122,17 +163,46 @@ class FirebaseAnalyticsService implements IAnalyticsService {
   ): Promise<void> {
     try {
       if (!this.analytics) {
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          console.warn("⚠️ Firebase Analytics: Cannot log event - analytics not initialized", {
+            eventName,
+          });
+        }
         return;
       }
 
       // Use whichever implementation initialized analytics
       if (nativeAnalytics && this.analytics) {
         await nativeAnalytics.logEvent(this.analytics, eventName, params);
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          console.log("📊 Firebase Analytics Event (native):", {
+            eventName,
+            params,
+            userId: this.userId || "guest",
+            platform: "iOS/Android",
+          });
+        }
       } else if (webAnalytics && this.analytics) {
         await webAnalytics.logEvent(this.analytics, eventName, params);
+        /* eslint-disable-next-line no-console */
+        if (__DEV__) {
+          console.log("📊 Firebase Analytics Event:", {
+            eventName,
+            params,
+            userId: this.userId || "guest",
+          });
+        }
       }
-    } catch (_error) {
-      // Silent fail
+    } catch (error) {
+      /* eslint-disable-next-line no-console */
+      if (__DEV__) {
+        console.warn("⚠️ Firebase Analytics: Failed to log event", {
+          eventName,
+          error,
+        });
+      }
     }
   }
 
@@ -200,6 +270,65 @@ class FirebaseAnalyticsService implements IAnalyticsService {
   }): Promise<void> {
     try {
       await this.logEvent('screen_view', {
+        screen_name: params.screen_name,
+        screen_class: params.screen_class || params.screen_name,
+      });
+    } catch (_error) {
+      // Silent fail
+    }
+  }
+
+  /**
+   * Log screen time (how long user spent on screen)
+   */
+  async logScreenTime(params: {
+    screen_name: string;
+    screen_class?: string;
+    time_spent_seconds: number;
+  }): Promise<void> {
+    try {
+      await this.logEvent('screen_time', {
+        screen_name: params.screen_name,
+        screen_class: params.screen_class || params.screen_name,
+        time_spent_seconds: params.time_spent_seconds,
+      });
+    } catch (_error) {
+      // Silent fail
+    }
+  }
+
+  /**
+   * Log navigation between screens
+   */
+  async logNavigation(params: {
+    from_screen: string;
+    to_screen: string;
+    screen_class?: string;
+  }): Promise<void> {
+    try {
+      await this.logEvent('navigation', {
+        from_screen: params.from_screen,
+        to_screen: params.to_screen,
+        screen_class: params.screen_class || params.to_screen,
+      });
+    } catch (_error) {
+      // Silent fail
+    }
+  }
+
+  /**
+   * Log button click
+   */
+  async logButtonClick(params: {
+    button_id: string;
+    button_name?: string;
+    screen_name: string;
+    screen_class?: string;
+  }): Promise<void> {
+    try {
+      await this.logEvent('button_click', {
+        button_id: params.button_id,
+        button_name: params.button_name || params.button_id,
         screen_name: params.screen_name,
         screen_class: params.screen_class || params.screen_name,
       });

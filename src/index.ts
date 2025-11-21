@@ -32,3 +32,28 @@ export {
   TrackOperation,
 } from './presentation/decorators/PerformanceDecorator';
 
+// =============================================================================
+// PRESENTATION LAYER - Hooks
+// =============================================================================
+
+export {
+  useScreenView,
+} from './presentation/hooks/useScreenView';
+
+export {
+  useScreenTime,
+} from './presentation/hooks/useScreenTime';
+
+export {
+  useNavigationTracking,
+} from './presentation/hooks/useNavigationTracking';
+
+// =============================================================================
+// PRESENTATION LAYER - Utilities
+// =============================================================================
+
+export {
+  trackButtonClick,
+  trackCRUDOperation,
+} from './presentation/utils/analyticsUtils';
+
