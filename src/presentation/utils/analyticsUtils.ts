@@ -62,7 +62,7 @@ export function trackCRUDOperation(
   entityId: string,
   additionalParams?: Record<string, string | number | boolean | null>,
 ): void {
-  const eventName = `${entityType}_${operation}d` as const;
+  const eventName = `${entityType}_${operation}d`;
 
   firebaseAnalyticsService
     .logEvent(eventName, {

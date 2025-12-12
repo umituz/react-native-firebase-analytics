@@ -60,18 +60,7 @@ export function TrackOperation(
           duration_ms: Date.now() - startTime,
         });
 
-        // Try to log to Crashlytics if available (optional dependency)
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const { firebaseCrashlyticsService } = require('@umituz/react-native-firebase-crashlytics');
-          const errorObj = error instanceof Error ? error : new Error('Unknown error');
-          await firebaseCrashlyticsService.logError(
-            errorObj,
-            `${operationName}.${propertyKey}`
-          );
-        } catch {
-          // Crashlytics not available - ignore
-        }
+
 
         throw error;
       }

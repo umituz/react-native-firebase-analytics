@@ -61,9 +61,6 @@ class FirebaseAnalyticsService implements IAnalyticsService {
         if (userId) {
           this.userId = userId;
           await analyticsUserService.setUserId(this.analyticsInstance, userId);
-          await this.setUserProperty('user_type', 'authenticated');
-        } else {
-          await this.setUserProperty('user_type', 'guest');
         }
         /* eslint-disable-next-line no-console */
         if (__DEV__) {
@@ -102,7 +99,6 @@ class FirebaseAnalyticsService implements IAnalyticsService {
     try {
       this.userId = userId;
       await analyticsUserService.setUserId(this.analyticsInstance, userId);
-      await this.setUserProperty('user_type', 'authenticated');
     } catch (_error) {
       // Analytics is non-critical, fail silently
     }

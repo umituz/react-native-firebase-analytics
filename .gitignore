@@ -1,6 +1,12 @@
 node_modules/
 dist/
+lib/
+build/
 *.log
 .DS_Store
 *.tsbuildinfo
+coverage/
+.nyc_output/
+.vscode/
+.idea/
 
